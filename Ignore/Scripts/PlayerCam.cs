@@ -9,47 +9,65 @@ public class PlayerCam : MonoBehaviour
     public float sensY;
     public float multiplier;
 
-    public Transform orientation;
+    [Header("Orientation")]
+    private Vector3 currentMousePosition;
+    private Vector3 smoothMousePosition;
+    public float smoothTime = 0.1f;
+    private Vector3 currentVelocity;
+
+    public float mouseSensitivity = 100f;
+    public Rigidbody rb;
+
+    float xRotation = 0f;
+    float yRotation = 0f;
+
+    // -72.1 -87.5 84.4
+    // -0.434 0.117 0.106
+    // -0.436 0.187 0.069
+    // -0.477 0.148 0.082
+
+
+    public Transform shadow;
+
     public Transform camHolder;
 
-    float xRotation;
-    float yRotation;
 
     [Header("Fov")]
     public bool useFluentFov;
-    public PlayerMovementDashing pm;
-    public Rigidbody rb;
+    public PlayerMovementAdvanced pm;
     public Camera cam;
     public float minMovementSpeed;
     public float maxMovementSpeed;
     public float minFov;
     public float maxFov;
+    public string previousMovementState;
 
     private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        previousMovementState = "standing";
     }
 
     private void Update()
     {
         // get mouse input
-        float mouseX = Input.GetAxisRaw("Mouse X") * sensX;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * sensY;
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        yRotation += mouseX * multiplier;
+        yRotation += mouseX;
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -75f, 75f);
 
-        xRotation -= mouseY * multiplier;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
         // rotate cam and orientation
-        camHolder.rotation = Quaternion.Euler(xRotation, yRotation, 0);
-        orientation.rotation = Quaternion.Euler(0, yRotation, 0);
+        camHolder.rotation = Quaternion.Euler(xRotation, yRotation, 0);                
+        shadow.rotation = Quaternion.Euler(0, yRotation, 0);
 
-        if (useFluentFov) HandleFov();
+
     }
 
-    private void HandleFov()
+    /*private void HandleFov()
     {
         float moveSpeedDif = maxMovementSpeed - minMovementSpeed;
         float fovDif = maxFov - minFov;
@@ -66,6 +84,7 @@ public class PlayerCam : MonoBehaviour
 
         cam.fieldOfView = lerpedFov;
     }
+*/
 
     public void DoFov(float endValue)
     {

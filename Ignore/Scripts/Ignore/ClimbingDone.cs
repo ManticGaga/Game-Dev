@@ -11,25 +11,21 @@ public class ClimbingDone : MonoBehaviour
     public LayerMask whatIsWall;
 
     [Header("Climbing")]
-    public float climbSpeed = 3f;
-    public float maxClimbTime = 0.75f;
+    public float climbSpeed;
+    public float maxClimbTime;
     private float climbTimer;
-
-    public float climbJumpUpForce = 15f;
-    public float climbJumpBackForce = 15f;
+    //
 
     private bool climbing;
 
-    [Header("ClimbJumping")]
-    public KeyCode jumpKey = KeyCode.Space;
+    [Header("Vaulting")]
     public KeyCode vaultKey = KeyCode.W;
-    public int climbJumps;
-    private int climbJumpsLeft;
+ 
 
     [Header("Detection")]
     public float detectionLength;
     public float sphereCastRadius;
-    public float maxWallLookAngle = 30f;
+    public float maxWallLookAngle = 35f;
     private float wallLookAngle;
 
     private RaycastHit frontWallHit;
@@ -44,31 +40,7 @@ public class ClimbingDone : MonoBehaviour
     public float exitWallTime;
     private float exitWallTimer;
 
-    [Header("Ledge Grabbing")]
     public Transform cam;
-
-    public float moveToLedgeSpeed;
-    public float ledgeJumpForwardForce;
-    public float ledgeJumpUpForce;
-    public float maxLedgeJumpUpSpeed;
-    public float maxLedgeGrabDistance;
-
-    public float minTimeOnLedge;
-    private float timeOnLedge;
-
-    private bool holding;
-
-    [Header("Ledge Detection")]
-    public float ledgeDetectionLength;
-    public float ledgeSphereCastRadius;
-    public LayerMask whatIsLedge;
-
-    private Transform lastLedge;
-    public Transform currLedge;
-
-    private RaycastHit ledgeHit;
-    private Vector3 directionToLedge;
-    private float distanceToLedge;
 
     [Header("Vaulting")]
     public float vaultDetectionLength;
@@ -78,8 +50,6 @@ public class ClimbingDone : MonoBehaviour
     public float vaultJumpUpForce;
     public float vaultCooldown;
 
-    bool readyToVault;
-    bool vaultPerformed;
     bool midCheck;
     bool feetCheck;
 
@@ -96,15 +66,15 @@ public class ClimbingDone : MonoBehaviour
     {
         float horizontalInput = Input.GetAxisRaw("Horizontal");
         float verticalInput = Input.GetAxisRaw("Vertical");
-        Vector2 inputDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;              
-
-        // State 3 - Exiting
-        if (exitingWall)
+        Vector2 inputDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
+        
+        if (wallFront && Input.GetKey(KeyCode.W) && wallLookAngle < maxWallLookAngle)
         {
-            if (climbing) StopClimbing();
-
-            if (exitWallTimer > 0) exitWallTimer -= Time.deltaTime;
-            if (exitWallTimer < 0) exitingWall = false;
+            if (!climbing) StartClimbing();                        
+            if (!wallFront)
+            {
+                StopClimbing();
+            }
         }
 
         // State 4 - None
@@ -113,7 +83,7 @@ public class ClimbingDone : MonoBehaviour
             if (climbing) StopClimbing();
         }
 
-      
+
     }
 
     private void WallCheck()
@@ -126,27 +96,20 @@ public class ClimbingDone : MonoBehaviour
         if ((wallFront && newWall) || pm.grounded)
         {
             climbTimer = maxClimbTime;
-            climbJumpsLeft = climbJumps;
         }
 
         // vaulting
-        if(Physics.Raycast(transform.position, orientation.forward, detectionLength, whatIsWall))
-            print("raycastCheck done");
-
         midCheck = Physics.Raycast(transform.position, orientation.forward, vaultDetectionLength, whatIsWall);
         feetCheck = Physics.Raycast(transform.position + new Vector3(0, -0.9f, 0), orientation.forward, vaultDetectionLength, whatIsWall);
-
         topReached = feetCheck && !midCheck;
+        if (topReached == true)
+        {
+            rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+            rb.AddForce(transform.up * 2f, ForceMode.Impulse);
+            topReached = false;
+            print("Подбросило");
+        }
 
-        // ledge detection
-        bool ledgeDetected = Physics.SphereCast(transform.position, ledgeSphereCastRadius, cam.forward, out ledgeHit, ledgeDetectionLength, whatIsLedge);
-
-        if (ledgeHit.transform == null) return;
-
-        directionToLedge = ledgeHit.transform.position - transform.position;
-        distanceToLedge = directionToLedge.magnitude;
-
-        if (lastLedge != null && ledgeHit.transform == lastLedge) return;
 
 
     }
@@ -173,13 +136,4 @@ public class ClimbingDone : MonoBehaviour
         pm.climbing = false;
     }
 
-    
- 
-    private void OnDrawGizmos()
-    {
-        if (currLedge == null) return;
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(currLedge.position, 1f);
-    }
 }
